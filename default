@@ -18,14 +18,9 @@
 
 # Default server configuration
 #
-upstream grafana {
-    server 127.0.0.1:3000;
-}
+
 upstream git {
-    server 127.0.0.1:28000;
-}
-upstream transmission {
-    server 127.0.0.1:9091;
+    server localhost:28000;
 }
 #upstream storage {
 #    server 127.0.0.1:3000;
@@ -46,70 +41,41 @@ upstream transmission {
 #}
 #
 #
-##############################################################################################
-# transmission.nrichman.dev main server
-#  Redirects to localhost:51413 for transmission docker container
-server {
-    server_name transmission.nrichman.dev;
-    location / {
-        proxy_pass          http://transmission;
-        proxy_redirect      off;
-        proxy_set_header    Host              $host;
-        proxy_set_header    X-Real-IP         $remote_addr;
-        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;
-    } # managed by Certbot
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/transmission.nrichman.dev/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/transmission.nrichman.dev/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-}
+#log_format main '$remote_addr $http_x_forwarded_for - $remote_user [$time_local] "$host" "$request" '
+#            '$status $body_bytes_sent "$http_referer" '
+#            '"$http_user_agent" $request_time';
 ##############################################################################################
 # git.nrichman.dev main server
 #  Redirects to localhost:28000 for gitlab docker container
 server {
     server_name git.nrichman.dev;
     location / {
-        proxy_pass          http://git;
-        proxy_redirect      off;
         proxy_set_header    Host              $host;
         proxy_set_header    X-Real-IP         $remote_addr;
         proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;
-    } # managed by Certbot
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/git.nrichman.dev/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/git.nrichman.dev/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-}
-##############################################################################################
-# dashboard.nrichman.dev main server
-server {
-    server_name dashboard.nrichman.dev;
-    location / {
-        proxy_pass          http://grafana;
+	proxy_set_header    X-Forwarded-Proto $scheme;
+        proxy_pass          http://127.0.0.1:28000;
+	proxy_read_timeout  90;
         proxy_redirect      off;
-        proxy_set_header    Host              $host;
-        proxy_set_header    X-Real-IP         $remote_addr;
-        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;
     } # managed by Certbot
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/dashboard.nrichman.dev/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/dashboard.nrichman.dev/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-}
+    access_log /var/log/nginx/git.nrichman.dev.access.log main;
+#    listen 443 ssl; # managed by Certbot
+    listen 80;
+#    ssl_certificate /etc/letsencrypt/live/git.nrichman.dev/fullchain.pem; # managed by Certbot
+#    ssl_certificate_key /etc/letsencrypt/live/git.nrichman.dev/privkey.pem; # managed by Certbot
+#    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+#    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
+}
 ##############################################################################################
 # nrichman.dev main server
 server {
-    server_name nrichman.dev;
-
-
+    server_name nrichman.dev www.nrichman.dev;
     root /var/www/html;
 
     # Add index.php to the list if you are using PHP
     index index.html index.htm index.nginx-debian.html;
+    access_log /var/log/nginx/nrichman.dev.access.log main;
 
     location / {
         # First attempt to serve request as file, then
@@ -134,51 +100,42 @@ server {
     #location ~ /\.ht {
     #    deny all;
     #}
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/nrichman.dev/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/nrichman.dev/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+    listen 80;
+#    listen 443 ssl; # managed by Certbot
+#    ssl_certificate /etc/letsencrypt/live/git.nrichman.dev/fullchain.pem; # managed by Certbot
+#    ssl_certificate_key /etc/letsencrypt/live/git.nrichman.dev/privkey.pem; # managed by Certbot
+#    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+#    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+#
+
 }
 ##############################################################################################
 #Force HTTPS
-server {
-    if ($host = nrichman.dev) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-    listen 80;
-    server_name nrichman.dev;
-    return 404; # managed by Certbot
-}
-server {
-    if ($host = dashboard.nrichman.dev) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-    server_name dashboard.nrichman.dev;
-    listen 80;
-    return 404; # managed by Certbot
-}
-server {
-    if ($host = git.nrichman.dev) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-    server_name git.nrichman.dev;
-    listen 80;
-    return 404; # managed by Certbot
-}
-server {
-    if ($host = storage.nrichman.dev) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-    server_name storage.nrichman.dev;
-    listen 80;
-    return 404; # managed by Certbot
-}
-server {
-    if ($host = transmission.nrichman.dev) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-    server_name transmission.nrichman.dev;
-    listen 80;
-    return 404; # managed by Certbot
-}
+#server {
+#    if ($host = nrichman.dev) {
+#        return 301 https://$host$request_uri;
+#    } # managed by Certbot
+#    listen 80;
+#    if ($host = www.nrichman.dev){
+#	return 301 https://$host$request_uri;
+#    }
+#    server_name nrichman.dev www.nrichman.dev;
+#    return 404; # managed by Certbot
+#}
+#
+#server {
+#    if ($host = git.nrichman.dev) {
+#        return 301 https://$host$request_uri;
+#    } # managed by Certbot
+#    server_name git.nrichman.dev;
+#    listen 80;
+#    return 404; # managed by Certbot
+#}
+#server {
+#    if ($host = storage.nrichman.dev) {
+#        return 301 https://$host$request_uri;
+#    } # managed by Certbot
+#    server_name storage.nrichman.dev;
+#    listen 80;
+#    return 404; # managed by Certbot
+#}
