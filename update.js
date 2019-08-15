@@ -1,7 +1,7 @@
 var https = require('https');
 var cp = require('child_process');
 var credentials = require('./credentials.js');
-var IP = cp.execSync('curl -s -X GET "https://myip.dnsomatic.com"');	 
+var IP = cp.execSync('curl -s -X GET "https://myip.dnsomatic.com"');
 var options1 = {
   host: 'api.cloudflare.com',
   port: '443',
@@ -40,7 +40,7 @@ var data1 = {
 	name: "nrichman.dev",
 	content: IP.toString(),
 	ttl: 3600,
-	proxied: false
+	proxied: true
 }
 var data2 = {
 	type: "A",
