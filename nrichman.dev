@@ -44,11 +44,24 @@ upstream git {
 #log_format main '$remote_addr $http_x_forwarded_for - $remote_user [$time_local] "$host" "$request" '
 #            '$status $body_bytes_sent "$http_referer" '
 #            '"$http_user_agent" $request_time';
+# redirect https
+server {
+    listen 80;
+    server_name cloud.nrichman.dev git.nrichman.dev nrichman.dev www.nrichman.dev;
+    return 302 https://$server_name$request_uri; 
+}
 ##############################################################################################
 # git.nrichman.dev main server
-#  Redirects to localhost:28000 for gitlab docker container
+#  Redirects to localhost:28000 for gitea docker container
 server {
+    access_log /var/log/nginx/git.nrichman.dev.access.log main;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    ssl on;
+    ssl_certificate /etc/ssl/nrichman.dev/nrichman.dev.pem;
+    ssl_certificate_key /etc/ssl/nrichman.dev/nrichman.dev.key;
     server_name git.nrichman.dev;
+
     location / {
         proxy_set_header    Host              $host;
         proxy_set_header    X-Real-IP         $remote_addr;
@@ -58,19 +71,34 @@ server {
 	      proxy_read_timeout  90;
         proxy_redirect      off;
     } # managed by Certbot
-    access_log /var/log/nginx/git.nrichman.dev.access.log main;
-#    listen 443 ssl; # managed by Certbot
-    listen 80;
-#    ssl_certificate /etc/letsencrypt/live/git.nrichman.dev/fullchain.pem; # managed by Certbot
-#    ssl_certificate_key /etc/letsencrypt/live/git.nrichman.dev/privkey.pem; # managed by Certbot
-#    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-#    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
+}
+##############################################################################################
+# Nextcloud main server
+server {
+  listen 443 ssl;
+  ssl_certificate /etc/ssl/nrichman.dev/nrichman.dev.pem;
+  ssl_certificate_key /etc/ssl/nrichman.dev/nrichman.dev.key; 
+
+  server_name cloud.nrichman.dev;
+  location / {
+      proxy_set_header    Host              $host;
+      proxy_set_header    X-Real-IP         $remote_addr;
+      proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;
+      proxy_set_header    X-Forwarded-Proto $scheme;
+      proxy_pass          http://127.0.0.1:3005;
+      proxy_read_timeout  90;
+      proxy_redirect      off;
+  }
 }
 ##############################################################################################
 # nrichman.dev main server
 server {
-    server_name nrichman.dev www.nrichman.dev default;
+    listen 443 ssl;
+    ssl_certificate /etc/ssl/nrichman.dev/nrichman.dev.pem;
+    ssl_certificate_key /etc/ssl/nrichman.dev/nrichman.dev.key; 
+
+    server_name  www.nrichman.dev nrichman.dev default;
     root /var/www/html;
 
     # Add index.php to the list if you are using PHP
@@ -100,36 +128,18 @@ server {
     #location ~ /\.ht {
     #    deny all;
     #}
-    listen 80;
-#    listen 443 ssl; # managed by Certbot
-#    ssl_certificate /etc/letsencrypt/live/git.nrichman.dev/fullchain.pem; # managed by Certbot
-#    ssl_certificate_key /etc/letsencrypt/live/git.nrichman.dev/privkey.pem; # managed by Certbot
-#    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-#    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-#
 
 }
 ##############################################################################################
 #Force HTTPS
-#server {
-#    if ($host = nrichman.dev) {
-#        return 301 https://$host$request_uri;
-#    } # managed by Certbot
-#    listen 80;
-#    if ($host = www.nrichman.dev){
-#	return 301 https://$host$request_uri;
-#    }
-#    server_name nrichman.dev www.nrichman.dev;
-#    return 404; # managed by Certbot
-#}
 #
 #server {
 #    if ($host = git.nrichman.dev) {
 #        return 301 https://$host$request_uri;
-#    } # managed by Certbot
+#    } 
 #    server_name git.nrichman.dev;
 #    listen 80;
-#    return 404; # managed by Certbot
+#    return 404; 
 #}
 #server {
 #    if ($host = storage.nrichman.dev) {
